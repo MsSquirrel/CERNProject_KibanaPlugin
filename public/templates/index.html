@@ -1,0 +1,71 @@
+<div class="container">
+  <div class="row">
+    <div class="col-6-sm">
+        <h2>Choose parameters for visualization</h2>
+    </div>
+  </div>
+  
+  <br><br>
+
+
+  <div class = "row">
+      <div class="col-md-2">
+      <p> Begin date: </p>
+        <input type="text" class="form-control" datepicker-popup="dd/MM/yyyy" ng-model="selectedBeginDate" ng-change="beginDateChanged()" is-open="beginDateOpened" ng-required="true" ng-focus="beginDateOpened=true" />
+
+      <br>
+      </div>
+
+      <div class="col-md-2">
+      <p> End date: </p>
+        <input type="text" class="form-control" datepicker-popup="dd/MM/yyyy" ng-model="selectedEndDate" ng-change="endDateChanged()" is-open="endDateOpened" ng-required="true" ng-focus="endDateOpened=true" />
+      </div>
+
+      
+      <div class="col-md-4">
+      <p> Metric name: </p>
+      <select data-ng-options="name for name in metricNames" data-ng-model="selectedName"></select>
+      <br>
+      </div>
+
+      <div class="col-md-2">
+      <p>Id:</p>
+      <select data-ng-options="id for id in oracleIds" data-ng-model="selectedId"></select>
+      </div>
+
+      <div class="col-md-2">
+          <br>
+          <button type="button" class="btn btn-info btn-sm" ng-click="finishSelection()" >Finish</button>
+      </div>
+
+  </div>
+
+
+  <!--div class = "row">
+      <div class="col-md-2">
+      <p> Metric name: </p>
+      <select data-ng-options="name for name in metricNames" data-ng-model="selectedName"></select>
+      <br>
+      </div>
+
+      <div class="col-md-2">
+      <p>Id:</p>
+      <select data-ng-options="id for id in oracleIds" data-ng-model="selectedId"></select>
+      <br>
+      </div>
+
+
+       <div class="col-md-2">
+          <br>
+          <button type="button" class="btn btn-info btn-sm" ng-click="finishSelection()" >Finish</button>
+      </div>
+
+  </div-->
+
+  <br><br><br>
+
+  <div id="hist">
+
+  </div>
+
+</div>

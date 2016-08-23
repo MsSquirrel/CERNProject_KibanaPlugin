@@ -1,0 +1,385 @@
+{
+    "size": 0,
+    "aggs": {
+        "ArticlesAfterTime": {
+            "filter": {
+                "range": {
+                    "BEGIN_TIME": {
+                        "gte": "2016-07-30"
+                    }
+                }
+            },
+            "aggs": {
+                "GroupByType": {
+                    "terms": {
+                        "field": "BEGIN_TIME",
+                        "size": 0
+                    }
+                }
+            }
+        }
+    }
+}
+ 
+
+{
+    "aggregations": {
+        "avg_value": {
+            "metric_buckets": {
+                "field":    "METRIC_NAME"
+              },
+          "aggs" : {
+                "avg_value" : { "avg" : { "field" : "VALUE" } }
+            }
+            }
+        }
+}
+
+
+
+
+{
+ "size": 0, 
+  "filter" :   { "term" : { "METRIC_NAME" : "Logical Reads Per Sec"   }},
+   "aggregations": {
+        "by_day": {
+            "date_histogram": {
+                "field":    "BEGIN_DATE",
+                "interval": "hour",
+                "format" : "yyyyMMdd'T'HHmmss.SSSZ"
+            },
+            "aggregations": {
+                 "avg_value" : { "avg" : { "field" : "VALUE" } }
+            }
+        }
+    }
+}
+
+
+
+ {
+            size: 100,
+            "query": {
+              "bool": {
+                "must" : [
+                  {
+                   "term": {
+                      "METRIC_NAME": "per"
+                    }
+                  },
+                  {
+                   "term": {
+                      "oracle_sid": "imt"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+
+
+--- average value for each metric name
+
+
+{
+            "size": 0,
+            "aggs" : {
+              "metrics" : {
+                "terms" : { "field" : "METRIC_NAME" }, 
+                 "aggs" : {
+                          "avg_value" : { "avg" : { "field" : "VALUE" } }
+                    }
+              }
+            }
+          } 
+
+-- average value for chosen interval -----
+
+
+{
+  "size": 0,
+  "aggs": {
+    "2": {
+      "date_histogram": {
+        "field": "END_TIME",
+        "interval": "day",
+        "time_zone": "Europe/Berlin",
+        "min_doc_count": 1,
+        "extended_bounds": {
+          "min": 1470904069202,
+          "max": 1470904969202
+        }
+      },
+      "aggs": {
+        "1": {
+          "avg": {
+            "field": "VALUE"
+          }
+        }
+      }
+    }
+  },
+  "query": {
+    "filtered": {
+      "query": {
+        "query_string": {
+          "query": "METRIC_NAME: \"Logical Reads Per Sec\"",
+          "analyze_wildcard": true
+        }
+      },
+      "filter": {
+        "bool": {
+          "must": [
+            {
+              "range": {
+                "END_TIME": {
+                  "gte": "2016-08-01",
+                  "lte": "2016-08-11",
+                  "format": "yyyy-MM-dd"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+
+-----------  average value for chosen interval, metric name, oracle id
+
+
+{
+  "size": 0,
+  "aggs": {
+    "2": {
+      "date_histogram": {
+        "field": "END_TIME",
+        "interval": "day",
+        "time_zone": "Europe/Berlin",
+        "min_doc_count": 1
+      },
+      "aggs": {
+        "avg_value": {
+          "avg": {
+            "field": "VALUE"
+          }
+        }
+      }
+    }
+  },
+  "query": {
+    "filtered": {
+      "query": {
+        "query_string": {
+          "query": "METRIC_NAME: \"Logical Reads Per Sec\"",
+          "analyze_wildcard": true
+        }
+      },
+      "filter": {
+        "bool": {
+          "must": [
+            {
+              "range": {
+                "END_TIME": {
+                  "gte": "2016-08-04",
+                  "lte": "2016-08-12",
+                  "format": "yyyy-MM-dd"
+                }
+              }
+            }, 
+            {
+                   "term": {
+                      "METRIC_NAME": "Logical Reads Per Sec"
+                    }
+                  },
+                  {
+                   "term": {
+                      "oracle_sid": "imt"
+                    }
+                  }
+
+          ]
+        }
+      }
+    }
+  }
+}
+
+-----------  
+
+  $scope.setHistogramData = function(selectedOracleId, selectedMetricName)
+  {
+    console.log("Selected data: "+selectedOracleId+", "+selectedMetricName);
+
+    $scope.data = [];
+    var values = {};
+    var json = $scope.hejhej.settings.index.hits.hits;
+    //console.log("JSON: "+JSON.stringify(json));
+
+    if(selectedOracleId=='' || selectedMetricName==''){
+      for(var i=0; i< json.length; i++){
+        var xValue = i;
+        var yValue = parseFloat(json[i]._source.body.VALUE);
+        console.log(yValue);
+
+        if(values[xValue] === undefined){
+          values[xValue]=0;
+        }
+
+        values[xValue] += yValue;
+
+        $scope.data.push({"x": xValue, "y": values[xValue]});  
+      };
+    }
+    else
+
+    {
+      for(var i=0; i< json.length; i++){
+        var currentMetricName = json[i]._source.body.METRIC_NAME;
+
+        if(currentMetricName == selectedMetricName){
+          var xValue = i;
+          var yValue = parseFloat(json[i]._source.body.VALUE);
+          console.log(xValue);
+          console.log(yValue);
+
+          if(values[xValue] === undefined){
+            values[xValue]=0;
+          }
+
+          values[xValue] += yValue;
+
+          $scope.data.push({"x": xValue, "y": values[xValue]});  
+
+        };
+      };   
+    }
+  }
+
+  $scope.createHistogram = function (data, title)
+  {
+    var formatCount = d3.format(",.0f");
+    var totalWidth = 1920; //960
+    var totalHeight = 1200; //600
+
+    var margin = {top: 20, right: 20, bottom: 70, left: 60},
+      width = 1200 - margin.left - margin.right, //600
+      height = 600 - margin.top - margin.bottom; //300
+
+
+  var binArray = [];
+  var maxBin = data.length-1;
+  var binInc = 1;
+
+    for (var i = 0; i <= maxBin + binInc; i += binInc) {
+      binArray.push(i);
+    }
+    var binTicks = [];
+    for (var i = 0; i < maxBin + binInc; i += binInc) {
+      binTicks.push(i);
+    }
+
+
+    var x = d3.scale.linear()
+        //.domain(data.map(function(d) { return d.x; }))
+        //.domain([0, maxBin + binInc])
+        //.domain(d3.extent(data, function(d) { return d.x; }))
+        .domain([0, d3.max(data, function(d) { return d.x; })])
+        .range([0, width]);
+
+    $scope.maxVal = d3.max(data, function(d) { return d.y; });
+    console.log("Max value in array: "+$scope.maxVal);
+    var dataLength = data.length;
+
+    //var nn = x;
+    //console.log("NN: "+nn);
+
+    var y = d3.scale.linear()
+        .domain([0, d3.max(data, function(d) { return d.y; })])
+        .range([height, 0]);
+    
+    var xAxis = d3.svg.axis()
+        .scale(x)
+        .orient("bottom")
+        .tickValues(binTicks);
+        
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left");
+
+    var binWidth = parseFloat(width / (binArray.length - 1)) - 1;
+
+
+
+    var line = d3.svg.line()
+      .x(function(d) { return x(d.x); })
+      .y(function(d) { return y(d.y); });
+
+
+
+    var svg = d3.select("#hist").append("svg")
+              .attr("width", width + margin.left + margin.right)
+              .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+              .attr("transform", "translate("+margin.left+","+margin.top+")");
+
+    /*var bar = svg.selectAll(".bar")
+              .data(data)
+              .enter()
+              .append("rect")
+              .attr("class" , "bar")
+              //.attr("transform", function(d) { return "translate(" + x(d.x) + "," + y(d.y) + ")"; })
+              //.attr("x", function(d){return x(d.x); })
+              .attr("x", function(d, i) {return i*(width / dataLength);} )
+              .attr("width", binWidth)
+              .attr("y", function(d){return y(d.y); })
+              .attr("height", function(d){ return height - y(d.y); });
+    */
+
+
+    svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+        
+    svg.append("g")
+        .attr("class", "y axis")
+        //.attr("transform", "translate(0," + height + ")")
+        .call(yAxis);
+        
+    // Add axis labels
+    svg.append("text")
+        .attr("class", "x label")
+        .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom-50) + ")")
+        //.attr("dy", "1em")
+        .attr("text-anchor", "middle")
+        .text("Ids ");
+        
+    svg.append("text")
+        .attr("class", "y label")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - margin.left)
+        .attr("x", 0 - (height / 2))
+        .attr("dy", "1em")
+        .attr("text-anchor", "middle")
+        .text("Values");
+        
+    // Add title to chart
+    svg.append("text")
+        .attr("class", "title")
+        .attr("transform", "translate(" + (width / 2) + " ," + (-20) + ")")
+        //.attr("dy", "1em")
+        .attr("text-anchor", "middle")
+        .text(title);  
+
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .attr("d", line);
+
+  };
+
+
+
